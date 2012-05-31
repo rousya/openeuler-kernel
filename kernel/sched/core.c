@@ -5774,7 +5774,12 @@ static int sched_domain_debug_one(struct sched_domain *sd, int cpu, int level,
 			break;
 		}
 
-		if (!group->sgp->power) {
+		/*
+		 * Even though we initialize ->power to something semi-sane,
+		 * we leave power_orig unset. This allows us to detect if
+		 * domain iteration is still funny without causing /0 traps.
+		 */
+		if (!group->sgp->power_orig) {
 			printk(KERN_CONT "\n");
 			printk(KERN_ERR "ERROR: domain->cpu_power not "
 					"set\n");
@@ -6288,6 +6293,18 @@ build_overlap_sched_groups(struct sched_domain *sd, int cpu)
 		sg->sgp = *per_cpu_ptr(sdd->sgp, i);
 		atomic_inc(&sg->sgp->ref);
 
+		/*
+		 * Initialize sgp->power such that even if we mess up the
+		 * domains and no possible iteration will get us here, we won't
+		 * die on a /0 trap.
+		 */
+		sg->sgp->power = SCHED_POWER_SCALE * cpumask_weight(sg_span);
+
+		/*
+		 * Make sure the first group of this domain contains the
+		 * canonical balance cpu. Otherwise the sched_domain iteration
+		 * breaks. See update_sg_lb_stats().
+		 */
 		if ((!groups && cpumask_test_cpu(cpu, sg_span)) ||
 			       cpumask_first(sg_span) == cpu) {
 			WARN_ON_ONCE(!cpumask_test_cpu(cpu, sg_span));
