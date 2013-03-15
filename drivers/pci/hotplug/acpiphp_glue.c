@@ -899,6 +899,7 @@ static int disable_device(struct acpiphp_slot *slot)
 	if (!pdev)
 		goto err_exit;
 
+	pci_dev_put(pdev);
 	list_for_each_entry(func, &slot->funcs, sibling) {
 		if (func->bridge) {
 			/* cleanup p2p bridges under this P2P bridge */
