@@ -22,6 +22,7 @@
 #include <asm/memory.h>
 #include <asm/thread_info.h>
 #include <asm/pgtable.h>
+#include <asm/unwind.h>
 
 #ifdef CONFIG_DEBUG_LL
 #include <mach/debug-macro.S>
@@ -407,6 +408,8 @@ __secondary_data:
  *  r13 = *virtual* address to jump to upon completion
  */
 __enable_mmu:
+UNWIND(.fnstart		)
+UNWIND(.cantunwind	)
 #if defined(CONFIG_ALIGNMENT_TRAP) && __LINUX_ARM_ARCH__ < 6
 	orr	r0, r0, #CR_A
 #else
@@ -433,6 +436,7 @@ __enable_mmu:
 	mcr	p15, 0, r4, c2, c0, 0		@ load page table pointer
 #endif
 	b	__turn_mmu_on
+UNWIND(.fnend		)
 ENDPROC(__enable_mmu)
 
 /*
