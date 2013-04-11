@@ -765,8 +765,12 @@ static unsigned long scan_lru_pages(unsigned long start, unsigned long end)
 static struct page *
 hotremove_migrate_alloc(struct page *page, unsigned long private, int **x)
 {
-	/* This should be improooooved!! */
-	return alloc_page(GFP_HIGHUSER_MOVABLE);
+	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
+
+	if (PageHighMem(page))
+		gfp_mask |= __GFP_HIGHMEM;
+
+	return alloc_page(gfp_mask);
 }
 
 #define NR_OFFLINE_AT_ONCE_PAGES	(256)
