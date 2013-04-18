@@ -2404,8 +2404,10 @@ void __unmap_hugepage_range(struct vm_area_struct *vma, unsigned long start,
 		 * Migrating hugepage or HWPoisoned hugepage is already
 		 * unmapped and its refcount is dropped
 		 */
-		if (unlikely(!pte_present(pte)))
+		if (unlikely(!pte_present(pte))) {
+			pte_clear(mm, address, ptep);
 			continue;
+		}
 
 		page = pte_page(pte);
 		/*
