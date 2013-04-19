@@ -825,7 +825,7 @@ static int nvme_submit_sync_cmd(struct nvme_queue *nvmeq,
 
 	set_current_state(TASK_KILLABLE);
 	nvme_submit_cmd(nvmeq, cmd);
-	schedule();
+	schedule_timeout(timeout);
 
 	if (cmdinfo.status == -EINTR) {
 		nvme_abort_command(nvmeq, cmdid);
