@@ -1879,11 +1879,17 @@ redo:
 	}
 }
 
-/* Unfreeze all the cpu partial slabs */
-static void unfreeze_partials(struct kmem_cache *s)
+/*
+ * Unfreeze all the cpu partial slabs.
+ *
+ * This function must be called with interrupts disabled
+ * for the cpu using c (or some other guarantee must be there
+ * to guarantee no concurrent accesses).
+ */
+static void unfreeze_partials(struct kmem_cache *s,
+		struct kmem_cache_cpu *c)
 {
 	struct kmem_cache_node *n = NULL, *n2 = NULL;
-	struct kmem_cache_cpu *c = this_cpu_ptr(s->cpu_slab);
 	struct page *page, *discard_page = NULL;
 
 	while ((page = c->partial)) {
@@ -1969,7 +1975,7 @@ int put_cpu_partial(struct kmem_cache *s, struct page *page, int drain)
 				 * set to the per node partial list.
 				 */
 				local_irq_save(flags);
-				unfreeze_partials(s);
+				unfreeze_partials(s, this_cpu_ptr(s->cpu_slab));
 				local_irq_restore(flags);
 				pobjects = 0;
 				pages = 0;
@@ -2007,7 +2013,7 @@ static inline void __flush_cpu_slab(struct kmem_cache *s, int cpu)
 		if (c->page)
 			flush_slab(s, c);
 
-		unfreeze_partials(s);
+		unfreeze_partials(s, c);
 	}
 }
 
