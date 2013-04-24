@@ -1121,7 +1121,7 @@ bool blk_throtl_bio(struct request_queue *q, struct bio *bio)
 	 * just update the dispatch stats in lockless manner and return.
 	 */
 	rcu_read_lock();
-	blkcg = task_blkio_cgroup(current);
+	blkcg = bio_blkio_cgroup(bio);
 	tg = throtl_find_tg(td, blkcg);
 	if (tg) {
 		throtl_tg_fill_dev_details(td, tg);
