@@ -310,7 +310,7 @@ static struct throtl_grp * throtl_get_tg(struct throtl_data *td,
 	struct request_queue *q = td->queue;
 
 	/* no throttling for dead queue */
-	if (unlikely(blk_queue_dead(q)))
+	if (unlikely(blk_queue_dying(q)))
 		return NULL;
 
 	tg = throtl_find_tg(td, blkcg);
@@ -336,7 +336,7 @@ static struct throtl_grp * throtl_get_tg(struct throtl_data *td,
 	css_put(&blkcg->css);
 
 	/* Make sure @q is still alive */
-	if (unlikely(blk_queue_dead(q))) {
+	if (unlikely(blk_queue_dying(q))) {
 		kfree(tg);
 		return NULL;
 	}
