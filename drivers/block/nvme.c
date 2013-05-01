@@ -1261,7 +1261,7 @@ static int nvme_kthread(void *data)
 	struct nvme_dev *dev;
 
 	while (!kthread_should_stop()) {
-		__set_current_state(TASK_RUNNING);
+		set_current_state(TASK_INTERRUPTIBLE);
 		spin_lock(&dev_list_lock);
 		list_for_each_entry(dev, &dev_list, node) {
 			int i;
@@ -1278,7 +1278,6 @@ static int nvme_kthread(void *data)
 			}
 		}
 		spin_unlock(&dev_list_lock);
-		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(round_jiffies_relative(HZ));
 	}
 	return 0;
