@@ -168,6 +168,8 @@ struct scsi_cmnd;
 #define MO_SET_PRIORITY       0x0e
 #define MO_SET_TIMESTAMP      0x0f
 #define MO_MANAGEMENT_PROTOCOL_OUT 0x10
+/* value for MI_REPORT_TARGET_PGS ext header */
+#define MI_EXT_HDR_PARAM_FMT  0x20
 /* values for variable length command */
 #define XDREAD_32	      0x03
 #define XDWRITE_32	      0x04
