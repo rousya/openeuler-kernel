@@ -614,6 +614,11 @@ static inline bool got_nohz_idle_kick(void)
 	return idle_cpu(cpu) && test_bit(NOHZ_BALANCE_KICK, nohz_flags(cpu));
 }
 
+int sched_needs_cpu(int cpu)
+{
+	return  cpu_rq(cpu)->avg_idle < sysctl_sched_migration_cost;
+}
+
 #else /* CONFIG_NO_HZ */
 
 static inline bool got_nohz_idle_kick(void)
