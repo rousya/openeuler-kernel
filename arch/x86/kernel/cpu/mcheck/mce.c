@@ -649,19 +649,21 @@ EXPORT_SYMBOL_GPL(machine_check_poll);
  * Do a quick check if any of the events requires a panic.
  * This decides if we keep the events around or clear them.
  */
-static int mce_no_way_out(struct mce *m, char **msg)
+static int mce_no_way_out(struct mce *m, char **msg, unsigned long *validp)
 {
-	int i;
+	int i, ret = 0;
 	char *tmp;
 
 	for (i = 0; i < banks; i++) {
 		m->status = mce_rdmsrl(MSR_IA32_MCx_STATUS(i));
+		if (m->status & MCI_STATUS_VAL)
+			__set_bit(i, validp);
 		if (mce_severity(m, tolerant, &tmp) >= MCE_PANIC_SEVERITY) {
 			*msg = tmp;
-			return 1;
+			ret = 1;
 		}
 	}
-	return 0;
+	return ret;
 }
 
 /*
@@ -1024,6 +1026,7 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 	 */
 	int kill_it = 0;
 	DECLARE_BITMAP(toclear, MAX_NR_BANKS);
+	DECLARE_BITMAP(valid_banks, MAX_NR_BANKS);
 	char *msg = "Unknown";
 
 	atomic_inc(&mce_entry);
@@ -1038,7 +1041,8 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 	final = &__get_cpu_var(mces_seen);
 	*final = m;
 
-	no_way_out = mce_no_way_out(&m, &msg);
+	memset(valid_banks, 0, sizeof(valid_banks));
+	no_way_out = mce_no_way_out(&m, &msg, valid_banks);
 
 	barrier();
 
@@ -1058,6 +1062,8 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 	order = mce_start(&no_way_out);
 	for (i = 0; i < banks; i++) {
 		__clear_bit(i, toclear);
+		if (!test_bit(i, valid_banks))
+			continue;
 		if (!mce_banks[i].ctl)
 			continue;
 
