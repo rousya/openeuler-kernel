@@ -87,6 +87,7 @@ static void acpi_bus_hot_remove_device(void *context)
 {
 	struct acpi_device *device;
 	acpi_handle handle = context;
+	acpi_handle temp;
 	struct acpi_object_list arg_list;
 	union acpi_object arg;
 	acpi_status status = AE_OK;
@@ -106,13 +107,16 @@ static void acpi_bus_hot_remove_device(void *context)
 		return;
 	}
 
+	/* device has been freed */
+	device = NULL;
+
 	/* power off device */
 	status = acpi_evaluate_object(handle, "_PS3", NULL, NULL);
 	if (ACPI_FAILURE(status) && status != AE_NOT_FOUND)
 		printk(KERN_WARNING PREFIX
 				"Power-off device failed\n");
 
-	if (device->flags.lockable) {
+	if (ACPI_SUCCESS(acpi_get_handle(handle, "_LCK", &temp))) {
 		arg_list.count = 1;
 		arg_list.pointer = &arg;
 		arg.type = ACPI_TYPE_INTEGER;
