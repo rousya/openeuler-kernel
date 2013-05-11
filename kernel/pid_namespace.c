@@ -71,6 +71,12 @@ err_alloc:
 	return NULL;
 }
 
+static void proc_cleanup_work(struct work_struct *work)
+{
+	struct pid_namespace *ns = container_of(work, struct pid_namespace, proc_work);
+	pid_ns_release_proc(ns);
+}
+
 /* MAX_PID_NS_LEVEL is needed for limiting size of 'struct pid' */
 #define MAX_PID_NS_LEVEL 32
 
@@ -102,6 +108,7 @@ static struct pid_namespace *create_pid_namespace(struct pid_namespace *parent_p
 	kref_init(&ns->kref);
 	ns->level = level;
 	ns->parent = get_pid_ns(parent_pid_ns);
+	INIT_WORK(&ns->proc_work, proc_cleanup_work);
 
 	set_bit(0, ns->pidmap[0].page);
 	atomic_set(&ns->pidmap[0].nr_free, BITS_PER_PAGE - 1);
@@ -109,14 +116,8 @@ static struct pid_namespace *create_pid_namespace(struct pid_namespace *parent_p
 	for (i = 1; i < PIDMAP_ENTRIES; i++)
 		atomic_set(&ns->pidmap[i].nr_free, BITS_PER_PAGE);
 
-	err = pid_ns_prepare_proc(ns);
-	if (err)
-		goto out_put_parent_pid_ns;
-
 	return ns;
 
-out_put_parent_pid_ns:
-	put_pid_ns(parent_pid_ns);
 out_free_map:
 	kfree(ns->pidmap[0].page);
 out_free:
