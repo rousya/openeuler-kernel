@@ -1003,6 +1003,7 @@ static void __queue_work(unsigned int cpu, struct workqueue_struct *wq,
 	struct cpu_workqueue_struct *cwq;
 	struct list_head *worklist;
 	unsigned int work_flags;
+	unsigned int req_cpu = cpu;
 	unsigned long flags;
 
 	debug_work_activate(work);
@@ -1050,7 +1051,7 @@ static void __queue_work(unsigned int cpu, struct workqueue_struct *wq,
 
 	/* gcwq determined, get cwq and queue */
 	cwq = get_cwq(gcwq->cpu, wq);
-	trace_workqueue_queue_work(cpu, cwq, work);
+	trace_workqueue_queue_work(req_cpu, cwq, work);
 
 	BUG_ON(!list_empty(&work->entry));
 
