@@ -1000,7 +1000,6 @@ static void make_request(struct mddev *mddev, struct bio * bio)
 	const unsigned long do_fua = (bio->bi_rw & REQ_FUA);
 	unsigned long flags;
 	struct md_rdev *blocked_rdev;
-	int plugged;
 	int sectors_handled;
 	int max_sectors;
 
@@ -1167,7 +1166,6 @@ read_again:
 	 * of r10_bios is recored in bio->bi_phys_segments just as with
 	 * the read case.
 	 */
-	plugged = mddev_check_plugged(mddev);
 
 	r10_bio->read_slot = -1; /* make sure repl_bio gets freed */
 	raid10_find_phys(conf, r10_bio);
@@ -1327,6 +1325,8 @@ retry_write:
 			bio_list_add(&conf->pending_bio_list, mbio);
 			conf->pending_count++;
 			spin_unlock_irqrestore(&conf->device_lock, flags);
+			if (!mddev_check_plugged(mddev, 0, 0))
+				md_wakeup_thread(mddev->thread);
 		}
 
 		if (r10_bio->devs[i].repl_bio) {
@@ -1353,6 +1353,8 @@ retry_write:
 			bio_list_add(&conf->pending_bio_list, mbio);
 			conf->pending_count++;
 			spin_unlock_irqrestore(&conf->device_lock, flags);
+			if (!mddev_check_plugged(mddev))
+				md_wakeup_thread(mddev->thread);
 		}
 	}
 
@@ -1379,9 +1381,6 @@ retry_write:
 
 	/* In case raid10d snuck in to freeze_array */
 	wake_up(&conf->wait_barrier);
-
-	if (do_sync || !mddev->bitmap || !plugged)
-		md_wakeup_thread(mddev->thread);
 }
 
 static void status(struct seq_file *seq, struct mddev *mddev)
@@ -2619,7 +2618,8 @@ static void raid10d(struct mddev *mddev)
 	blk_start_plug(&plug);
 	for (;;) {
 
-		flush_pending_writes(conf);
+		if (atomic_read(&mddev->plug_cnt) == 0)
+			flush_pending_writes(conf);
 
 		spin_lock_irqsave(&conf->device_lock, flags);
 		if (list_empty(head)) {
