@@ -439,7 +439,7 @@ static int parse_raid_params(struct raid_set *rs, char **argv,
 				rs->ti->error = "Too many rebuild devices specified for given RAID type";
 				return -EINVAL;
 			}
-			if (value > rs->md.raid_disks) {
+			if (value >= rs->md.raid_disks) {
 				rs->ti->error = "Invalid rebuild index given";
 				return -EINVAL;
 			}
