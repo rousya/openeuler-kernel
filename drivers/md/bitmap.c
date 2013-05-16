@@ -489,14 +489,10 @@ static int bitmap_new_disk_sb(struct bitmap *bitmap)
 {
 	bitmap_super_t *sb;
 	unsigned long chunksize, daemon_sleep, write_behind;
-	int err = -EINVAL;
 
 	bitmap->sb_page = alloc_page(GFP_KERNEL);
-	if (IS_ERR(bitmap->sb_page)) {
-		err = PTR_ERR(bitmap->sb_page);
-		bitmap->sb_page = NULL;
-		return err;
-	}
+	if (bitmap->sb_page == NULL)
+		return -ENOMEM;
 	bitmap->sb_page->index = 0;
 
 	sb = kmap_atomic(bitmap->sb_page);
