@@ -2746,16 +2746,6 @@ static int thin_iterate_devices(struct dm_target *ti,
 	return 0;
 }
 
-static void thin_io_hints(struct dm_target *ti, struct queue_limits *limits)
-{
-	struct thin_c *tc = ti->private;
-	struct pool *pool = tc->pool;
-
-	blk_limits_io_min(limits, 0);
-	blk_limits_io_opt(limits, pool->sectors_per_block << SECTOR_SHIFT);
-	set_discard_limits(pool, limits);
-}
-
 static struct target_type thin_target = {
 	.name = "thin",
 	.version = {1, 1, 1},
@@ -2767,7 +2757,6 @@ static struct target_type thin_target = {
 	.postsuspend = thin_postsuspend,
 	.status = thin_status,
 	.iterate_devices = thin_iterate_devices,
-	.io_hints = thin_io_hints,
 };
 
 /*----------------------------------------------------------------*/
