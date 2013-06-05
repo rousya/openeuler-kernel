@@ -1424,7 +1424,7 @@ static int team_nl_fill_port_list_get(struct sk_buff *skb,
 	NLA_PUT_U32(skb, TEAM_ATTR_TEAM_IFINDEX, team->dev->ifindex);
 	port_list = nla_nest_start(skb, TEAM_ATTR_LIST_PORT);
 	if (!port_list)
-		return -EMSGSIZE;
+		goto nla_put_failure;
 
 	list_for_each_entry(port, &team->port_list, list) {
 		struct nlattr *port_item;
