@@ -64,7 +64,7 @@ Patch format definition
 =======================
 [M] stands for "mandatory"
 [O] stands for "option"
-$category can be: bug preparation, bugfix, perf, feature, doc, other...
+$category can be: bug preparation, bugfix, perf, feature, doc, config, other...
 
 If category is feature, then we also need to add feature name like below:
 	category: feature
