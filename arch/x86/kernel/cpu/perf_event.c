@@ -1384,7 +1384,7 @@ static int __init init_hw_perf_events(void)
 		 * counter, so do not extend mask to generic counters
 		 */
 		for_each_event_constraint(c, x86_pmu.event_constraints) {
-			if (c->cmask != X86_RAW_EVENT_MASK
+			if (c->cmask != FIXED_EVENT_FLAGS
 			    || c->idxmsk64 == X86_PMC_MSK_FIXED_REF_CYCLES) {
 				continue;
 			}
