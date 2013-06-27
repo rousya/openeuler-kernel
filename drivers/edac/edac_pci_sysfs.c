@@ -431,8 +431,8 @@ static void edac_pci_main_kobj_teardown(void)
 		debugf0("%s() called kobject_put on main kobj\n",
 			__func__);
 		kobject_put(edac_pci_top_main_kobj);
+		edac_put_sysfs_subsys();
 	}
-	edac_put_sysfs_subsys();
 }
 
 /*
