@@ -1129,19 +1129,19 @@ blkio_print_policy_node(struct seq_file *m, struct blkio_policy_node *pn)
 	switch(pn->plid) {
 		case BLKIO_POLICY_PROP:
 			if (pn->fileid == BLKIO_PROP_weight_device)
-				seq_printf(m, "%u:%u\t%u\n", MAJOR(pn->dev),
+				seq_printf(m, "%u:%u %u\n", MAJOR(pn->dev),
 					MINOR(pn->dev), pn->val.weight);
 			break;
 		case BLKIO_POLICY_THROTL:
 			switch(pn->fileid) {
 			case BLKIO_THROTL_read_bps_device:
 			case BLKIO_THROTL_write_bps_device:
-				seq_printf(m, "%u:%u\t%llu\n", MAJOR(pn->dev),
+				seq_printf(m, "%u:%u %llu\n", MAJOR(pn->dev),
 					MINOR(pn->dev), pn->val.bps);
 				break;
 			case BLKIO_THROTL_read_iops_device:
 			case BLKIO_THROTL_write_iops_device:
-				seq_printf(m, "%u:%u\t%u\n", MAJOR(pn->dev),
+				seq_printf(m, "%u:%u %u\n", MAJOR(pn->dev),
 					MINOR(pn->dev), pn->val.iops);
 				break;
 			}
