@@ -205,7 +205,13 @@ config DECOMPRESS_LZO
 # Generic allocator support is selected if needed
 #
 config GENERIC_ALLOCATOR
-	boolean
+	boolean "Generic allocator"
+	help
+	  This option is provided for the case where no in-kernel-tree
+	  modules require generic allocator, but a module built outside
+	  the kernel tree does. Such modules require Y here.
+
+	  If unsure, say N.
 
 #
 # reed solomon support is select'ed if needed
