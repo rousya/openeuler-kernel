@@ -31,7 +31,7 @@ static DEFINE_PER_CPU(mce_banks_t, mce_banks_owned);
  * cmci_discover_lock protects against parallel discovery attempts
  * which could race against each other.
  */
-static DEFINE_RAW_SPINLOCK(cmci_discover_lock);
+static DEFINE_SPINLOCK(cmci_discover_lock);
 
 #define CMCI_THRESHOLD		1
 #define CMCI_POLL_INTERVAL	(30 * HZ)
@@ -133,14 +133,14 @@ static void cmci_storm_disable_banks(void)
 	int bank;
 	u64 val;
 
-	raw_spin_lock_irqsave(&cmci_discover_lock, flags);
+	spin_lock_irqsave(&cmci_discover_lock, flags);
 	owned = __get_cpu_var(mce_banks_owned);
 	for_each_set_bit(bank, owned, MAX_NR_BANKS) {
 		rdmsrl(MSR_IA32_MCx_CTL2(bank), val);
 		val &= ~MCI_CTL2_CMCI_EN;
 		wrmsrl(MSR_IA32_MCx_CTL2(bank), val);
 	}
-	raw_spin_unlock_irqrestore(&cmci_discover_lock, flags);
+	spin_unlock_irqrestore(&cmci_discover_lock, flags);
 }
 
 static bool cmci_storm_detect(void)
@@ -208,7 +208,7 @@ static void cmci_discover(int banks, int boot)
 	int hdr = 0;
 	int i;
 
-	raw_spin_lock_irqsave(&cmci_discover_lock, flags);
+	spin_lock_irqsave(&cmci_discover_lock, flags);
 	for (i = 0; i < banks; i++) {
 		u64 val;
 
@@ -239,7 +239,7 @@ static void cmci_discover(int banks, int boot)
 			WARN_ON(!test_bit(i, __get_cpu_var(mce_poll_banks)));
 		}
 	}
-	raw_spin_unlock_irqrestore(&cmci_discover_lock, flags);
+	spin_unlock_irqrestore(&cmci_discover_lock, flags);
 	if (hdr)
 		printk(KERN_CONT "\n");
 }
@@ -273,7 +273,7 @@ void cmci_clear(void)
 
 	if (!cmci_supported(&banks))
 		return;
-	raw_spin_lock_irqsave(&cmci_discover_lock, flags);
+	spin_lock_irqsave(&cmci_discover_lock, flags);
 	for (i = 0; i < banks; i++) {
 		if (!test_bit(i, __get_cpu_var(mce_banks_owned)))
 			continue;
@@ -283,7 +283,7 @@ void cmci_clear(void)
 		wrmsrl(MSR_IA32_MCx_CTL2(i), val);
 		__clear_bit(i, __get_cpu_var(mce_banks_owned));
 	}
-	raw_spin_unlock_irqrestore(&cmci_discover_lock, flags);
+	spin_unlock_irqrestore(&cmci_discover_lock, flags);
 }
 
 /*
