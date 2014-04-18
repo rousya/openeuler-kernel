@@ -172,6 +172,9 @@ struct usb_hcd {
 	 * (ohci 32, uhci 1024, ehci 256/512/1024).
 	 */
 
+	/* To by used for SLE security fixes if we run into a KABI problem */
+	void *euler_kabi_padding;
+
 	/* The HC driver's private data is stored at the end of
 	 * this structure.
 	 */
@@ -342,6 +345,8 @@ struct hc_driver {
 		 */
 	int	(*update_device)(struct usb_hcd *, struct usb_device *);
 	int	(*set_usb2_hw_lpm)(struct usb_hcd *, struct usb_device *, int);
+	/* To by used for SLE security fixes if we run into a KABI problem */
+	void *euler_kabi_padding;
 };
 
 extern int usb_hcd_link_urb_to_ep(struct usb_hcd *hcd, struct urb *urb);

@@ -444,6 +444,7 @@ struct zone {
 	 * rarely used fields:
 	 */
 	const char		*name;
+	void *euler_kabi_padding;
 } ____cacheline_internodealigned_in_smp;
 
 typedef enum {
@@ -666,6 +667,7 @@ typedef struct pglist_data {
 	struct task_struct *kswapd;	/* Protected by lock_memory_hotplug() */
 	int kswapd_max_order;
 	enum zone_type classzone_idx;
+	void *euler_kabi_padding;
 } pg_data_t;
 
 #define node_present_pages(nid)	(NODE_DATA(nid)->node_present_pages)

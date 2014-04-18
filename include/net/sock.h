@@ -378,6 +378,7 @@ struct sock {
   	int			(*sk_backlog_rcv)(struct sock *sk,
 						  struct sk_buff *skb);  
 	void                    (*sk_destruct)(struct sock *sk);
+	void *euler_kabi_padding;
 };
 
 static inline int sk_peek_offset(struct sock *sk, int flags)

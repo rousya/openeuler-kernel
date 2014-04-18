@@ -69,6 +69,7 @@ struct usbnet {
 #		define EVENT_DEV_WAKING 6
 #		define EVENT_DEV_ASLEEP 7
 #		define EVENT_DEV_OPEN	8
+	void *euler_kabi_padding;
 };
 
 static inline struct usb_driver *driver_of(struct usb_interface *intf)
@@ -151,6 +152,7 @@ struct driver_info {
 	int		out;		/* tx endpoint */
 
 	unsigned long	data;		/* Misc driver specific data */
+	void *euler_kabi_padding;
 };
 
 /* Minidrivers are just drivers using the "usbnet" core as a powerful

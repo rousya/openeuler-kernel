@@ -77,6 +77,7 @@ struct smp_ops {
 
 	void (*send_call_func_ipi)(const struct cpumask *mask);
 	void (*send_call_func_single_ipi)(int cpu);
+	void *euler_kabi_padding;
 };
 
 /* Globals due to paravirt */

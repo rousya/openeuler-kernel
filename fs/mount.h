@@ -47,6 +47,7 @@ struct mount {
 	int mnt_expiry_mark;		/* true if marked for expiry */
 	int mnt_pinned;
 	int mnt_ghosts;
+	void *euler_kabi_padding;
 };
 
 static inline struct mount *real_mount(struct vfsmount *mnt)

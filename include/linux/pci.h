@@ -347,6 +347,7 @@ struct pci_dev {
 	};
 	struct pci_ats	*ats;	/* Address Translation Service */
 #endif
+	void *euler_kabi_padding[2];
 };
 
 static inline struct pci_dev *pci_physfn(struct pci_dev *dev)
@@ -435,6 +436,7 @@ struct pci_bus {
 	struct bin_attribute	*legacy_io; /* legacy I/O for this bus */
 	struct bin_attribute	*legacy_mem; /* legacy mem */
 	unsigned int		is_added:1;
+	void *euler_kabi_padding;
 };
 
 #define pci_bus_b(n)	list_entry(n, struct pci_bus, node)
@@ -557,6 +559,7 @@ struct pci_driver {
 	struct pci_error_handlers *err_handler;
 	struct device_driver	driver;
 	struct pci_dynids dynids;
+	void *euler_kabi_padding;
 };
 
 #define	to_pci_driver(drv) container_of(drv, struct pci_driver, driver)
