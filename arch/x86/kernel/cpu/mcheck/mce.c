@@ -110,6 +110,13 @@ static void (*quirk_no_way_out)(int bank, struct mce *m, struct pt_regs *regs);
  */
 ATOMIC_NOTIFIER_HEAD(x86_mce_decoder_chain);
 
+int (*x86_mce_custom_check)(struct mce *);
+EXPORT_SYMBOL(x86_mce_custom_check);
+
+ATOMIC_NOTIFIER_HEAD(x86_mce_custom_chain);
+EXPORT_SYMBOL(x86_mce_custom_chain);
+
+
 /* Do initial initialization of a struct mce */
 void mce_setup(struct mce *m)
 {
@@ -1034,6 +1041,7 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 	DECLARE_BITMAP(toclear, MAX_NR_BANKS);
 	DECLARE_BITMAP(valid_banks, MAX_NR_BANKS);
 	char *msg = "Unknown";
+	int custom_err = 0;
 
 	atomic_inc(&mce_entry);
 
@@ -1080,6 +1088,9 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 		m.status = mce_rdmsrl(MSR_IA32_MCx_STATUS(i));
 		if ((m.status & MCI_STATUS_VAL) == 0)
 			continue;
+
+		if (!custom_err && x86_mce_custom_check && x86_mce_custom_check(&m))
+			custom_err = 1;
 
 		/*
 		 * Non uncorrected or non signaled errors are handled by
@@ -1150,7 +1161,7 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 	 * issues we try to recover, or limit damage to the current
 	 * process.
 	 */
-	if (tolerant < 3) {
+	if (!custom_err && tolerant < 3) {
 		if (no_way_out)
 			mce_panic("Fatal machine check on current CPU", &m, msg);
 		if (worst == MCE_AR_SEVERITY) {
@@ -1160,6 +1171,8 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 		} else if (kill_it) {
 			force_sig(SIGBUS, current);
 		}
+	} else if (custom_err) {
+		atomic_notifier_call_chain(&x86_mce_custom_chain, 0, NULL);
 	}
 
 	if (worst > 0)

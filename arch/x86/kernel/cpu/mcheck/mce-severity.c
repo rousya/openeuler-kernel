@@ -188,6 +188,9 @@ int mce_severity(struct mce *m, int tolerant, char **msg)
 	enum context ctx = error_context(m);
 	struct severity *s;
 
+	if (x86_mce_custom_check && x86_mce_custom_check(m))
+		return MCE_AR_SEVERITY;
+
 	for (s = severities;; s++) {
 		if ((m->status & s->mask) != s->result)
 			continue;
