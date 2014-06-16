@@ -522,6 +522,7 @@ acpi_ut_update_object_reference(union acpi_operand_object *object, u16 action)
 
 			/* Update the notify objects for these types (if present) */
 
+			acpi_ut_acquire_mutex(ACPI_MTX_NOTIFY_REF_COUNT);
 			acpi_ut_update_ref_count(object->common_notify.
 						 system_notify, action);
 			acpi_ut_update_ref_count(object->common_notify.
@@ -610,6 +611,11 @@ acpi_ut_update_object_reference(union acpi_operand_object *object, u16 action)
 		 * main object to be deleted.
 		 */
 		acpi_ut_update_ref_count(object, action);
+		if (object->common.type == ACPI_TYPE_PROCESSOR ||
+		    object->common.type == ACPI_TYPE_DEVICE ||
+		    object->common.type == ACPI_TYPE_POWER ||
+		    object->common.type == ACPI_TYPE_THERMAL)
+			acpi_ut_release_mutex(ACPI_MTX_NOTIFY_REF_COUNT);
 		object = NULL;
 
 		/* Move on to the next object to be updated */

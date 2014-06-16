@@ -85,8 +85,9 @@ union acpi_parse_object;
 #define ACPI_MTX_MEMORY                 5	/* Debug memory tracking lists */
 #define ACPI_MTX_DEBUG_CMD_COMPLETE     6	/* AML debugger */
 #define ACPI_MTX_DEBUG_CMD_READY        7	/* AML debugger */
+#define ACPI_MTX_NOTIFY_REF_COUNT	8	/* Reference count of notify object */
 
-#define ACPI_MAX_MUTEX                  7
+#define ACPI_MAX_MUTEX                  8
 #define ACPI_NUM_MUTEX                  ACPI_MAX_MUTEX+1
 
 /* Lock structure for reader/writer interfaces */

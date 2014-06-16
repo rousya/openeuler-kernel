@@ -281,6 +281,10 @@ acpi_install_notify_handler(acpi_handle device,
 						handler, context,
 						NULL);
 
+		acpi_ut_acquire_mutex(ACPI_MTX_NOTIFY_REF_COUNT);
+
+		notify_obj->common.reference_count = obj_desc->common.reference_count;
+
 		if (handler_type & ACPI_SYSTEM_NOTIFY) {
 			obj_desc->common_notify.system_notify = notify_obj;
 		}
@@ -289,8 +293,9 @@ acpi_install_notify_handler(acpi_handle device,
 			obj_desc->common_notify.device_notify = notify_obj;
 		}
 
-		if (handler_type == ACPI_ALL_NOTIFY) {
+		acpi_ut_release_mutex(ACPI_MTX_NOTIFY_REF_COUNT);
 
+		if (handler_type == ACPI_ALL_NOTIFY) {
 			/* Extra ref if installed in both */
 
 			acpi_ut_add_reference(notify_obj);
