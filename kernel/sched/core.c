@@ -1080,8 +1080,19 @@ void check_preempt_curr(struct rq *rq, struct task_struct *p, int flags)
 	 * A queue event has occurred, and we're going to schedule.  In
 	 * this case, we can save a useless back to back clock update.
 	 */
+#ifdef CONFIG_PREEMPT
 	if (rq->curr->on_rq && test_tsk_need_resched(rq->curr))
 		rq->skip_clock_update = 1;
+#else
+	/*
+	 * In non-preempt mode, a kernel thread may run for a long time
+	 * until been scheduled out by itself. In this cace, we need update
+	 * rq clock when calling schedule function, otherwise, we might
+	 * miss rq clock update for a long time.
+	 */
+	if (rq->curr->on_rq && test_tsk_need_resched(rq->curr) && rq->curr->mm)
+		rq->skip_clock_update = 1;
+#endif
 }
 
 #ifdef CONFIG_SMP
