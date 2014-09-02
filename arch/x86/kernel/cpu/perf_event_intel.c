@@ -2274,7 +2274,6 @@ __init int intel_pmu_init(void)
 
 	case 60: /* Haswell Client */
 	case 70:
-	case 71:
 	case 63:
 		x86_pmu.late_ack = true;
 		memcpy(hw_cache_event_ids, snb_hw_cache_event_ids, sizeof(hw_cache_event_ids));
