@@ -49,6 +49,7 @@
  *	document number TBD : DH89xxCC
  *	document number TBD : Panther Point
  *	document number TBD : Lynx Point
+ *	document number TBD : Avoton SoC
  */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -203,6 +204,7 @@ enum lpc_chipsets {
 	LPC_DH89XXCC,	/* DH89xxCC */
 	LPC_PPT,	/* Panther Point */
 	LPC_LPT,	/* Lynx Point */
+	LPC_AVN,	/* Avoton SoC */
 };
 
 struct lpc_ich_info lpc_chipset_info[] __devinitdata = {
@@ -479,6 +481,10 @@ struct lpc_ich_info lpc_chipset_info[] __devinitdata = {
 		.name = "Lynx Point",
 		.iTCO_version = 2,
 	},
+	[LPC_AVN] = {
+		.name = "Avoton SoC",
+		.iTCO_version = 1,
+	},
 };
 
 /*
@@ -652,6 +658,10 @@ static DEFINE_PCI_DEVICE_TABLE(lpc_ich_ids) = {
 	{ PCI_VDEVICE(INTEL, 0x8c5d), LPC_LPT},
 	{ PCI_VDEVICE(INTEL, 0x8c5e), LPC_LPT},
 	{ PCI_VDEVICE(INTEL, 0x8c5f), LPC_LPT},
+	{ PCI_VDEVICE(INTEL, 0x1f38), LPC_AVN},
+	{ PCI_VDEVICE(INTEL, 0x1f39), LPC_AVN},
+	{ PCI_VDEVICE(INTEL, 0x1f3a), LPC_AVN},
+	{ PCI_VDEVICE(INTEL, 0x1f3b), LPC_AVN},
 	{ 0, },			/* End of list */
 };
 MODULE_DEVICE_TABLE(pci, lpc_ich_ids);
