@@ -208,6 +208,7 @@ enum lpc_chipsets {
 	LPC_PPT,	/* Panther Point */
 	LPC_LPT,	/* Lynx Point */
 	LPC_AVN,	/* Avoton SoC */
+	LPC_BAYTRAIL,   /* Bay Trail SoC */
 };
 
 struct lpc_ich_info lpc_chipset_info[] __devinitdata = {
@@ -489,6 +490,10 @@ struct lpc_ich_info lpc_chipset_info[] __devinitdata = {
 		.iTCO_version = 3,
 		.gpio_version = AVOTON_GPIO,
 	},
+	[LPC_BAYTRAIL] = {
+		.name = "Bay Trail SoC",
+		.iTCO_version = 3,
+	},
 };
 
 /*
@@ -666,6 +671,7 @@ static DEFINE_PCI_DEVICE_TABLE(lpc_ich_ids) = {
 	{ PCI_VDEVICE(INTEL, 0x1f39), LPC_AVN},
 	{ PCI_VDEVICE(INTEL, 0x1f3a), LPC_AVN},
 	{ PCI_VDEVICE(INTEL, 0x1f3b), LPC_AVN},
+	{ PCI_VDEVICE(INTEL, 0x0f1c), LPC_BAYTRAIL},
 	{ 0, },			/* End of list */
 };
 MODULE_DEVICE_TABLE(pci, lpc_ich_ids);
