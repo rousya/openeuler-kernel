@@ -864,7 +864,8 @@ static int __devinit lpc_ich_probe(struct pci_dev *dev,
 	int ret;
 	bool cell_added = false;
 
-	priv = kmalloc(GFP_KERNEL, sizeof(struct lpc_ich_priv));
+	priv = devm_kzalloc(&dev->dev,
+			    sizeof(struct lpc_ich_priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 
@@ -900,7 +901,6 @@ static int __devinit lpc_ich_probe(struct pci_dev *dev,
 		dev_warn(&dev->dev, "No MFD cells added\n");
 		lpc_ich_restore_config_space(dev);
 		pci_set_drvdata(dev, NULL);
-		kfree(priv);
 		return -ENODEV;
 	}
 
@@ -909,12 +909,9 @@ static int __devinit lpc_ich_probe(struct pci_dev *dev,
 
 static void __devexit lpc_ich_remove(struct pci_dev *dev)
 {
-	void *priv = pci_get_drvdata(dev);
-
 	mfd_remove_devices(&dev->dev);
 	lpc_ich_restore_config_space(dev);
 	pci_set_drvdata(dev, NULL);
-	kfree(priv);
 }
 
 static struct pci_driver lpc_ich_driver = {
