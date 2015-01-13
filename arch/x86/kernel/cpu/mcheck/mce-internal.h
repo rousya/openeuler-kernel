@@ -12,6 +12,7 @@ enum severity_level {
 };
 
 #define ATTR_LEN		16
+#define INITIAL_CHECK_INTERVAL	5 * 60 /* 5 minutes */
 
 /* One object for each MCE bank, shared by all CPUs */
 struct mce_bank {
@@ -29,12 +30,12 @@ extern int mce_ser;
 extern struct mce_bank *mce_banks;
 
 #ifdef CONFIG_X86_MCE_INTEL
-unsigned long mce_intel_adjust_timer(unsigned long interval);
-void mce_intel_cmci_poll(void);
+unsigned long cmci_intel_adjust_timer(unsigned long interval);
+bool mce_intel_cmci_poll(void);
 void mce_intel_hcpu_update(unsigned long cpu);
 #else
-# define mce_intel_adjust_timer mce_adjust_timer_default
-static inline void mce_intel_cmci_poll(void) { }
+# define cmci_intel_adjust_timer mce_adjust_timer_default
+static inline bool mce_intel_cmci_poll(void) { return false; }
 static inline void mce_intel_hcpu_update(unsigned long cpu) { }
 #endif
 

@@ -59,7 +59,7 @@ int mce_disabled __read_mostly;
 
 #define MISC_MCELOG_MINOR	227
 
-#define SPINUNIT 100	/* 100ns */
+#define SPINUNIT		100	/* 100ns */
 
 atomic_t mce_entry;
 
@@ -94,9 +94,6 @@ static DECLARE_WAIT_QUEUE_HEAD(mce_chrdev_wait);
 
 static DEFINE_PER_CPU(struct mce, mces_seen);
 static int			cpu_missing;
-
-/* CMCI storm detection filter */
-static DEFINE_PER_CPU(unsigned long, mce_polled_error);
 
 /* MCA banks polled by the period polling timer for corrected events */
 DEFINE_PER_CPU(mce_banks_t, mce_poll_banks) = {
@@ -598,8 +595,9 @@ DEFINE_PER_CPU(unsigned, mce_poll_count);
  * is already totally * confused. In this case it's likely it will
  * not fully execute the machine check handler either.
  */
-void machine_check_poll(enum mcp_flags flags, mce_banks_t *b)
+bool machine_check_poll(enum mcp_flags flags, mce_banks_t *b)
 {
+	bool error_logged = false;
 	struct mce m;
 	int i;
 
@@ -621,7 +619,6 @@ void machine_check_poll(enum mcp_flags flags, mce_banks_t *b)
 		if (!(m.status & MCI_STATUS_VAL))
 			continue;
 
-		this_cpu_write(mce_polled_error, 1);
 		/*
 		 * Uncorrected or signalled events are handled by the exception
 		 * handler when it is enabled, so don't process those here.
@@ -640,8 +637,10 @@ void machine_check_poll(enum mcp_flags flags, mce_banks_t *b)
 		 * Don't get the IP here because it's unlikely to
 		 * have anything to do with the actual error location.
 		 */
-		if (!(flags & MCP_DONTLOG) && !mce_dont_log_ce)
+		if (!(flags & MCP_DONTLOG) && !mce_dont_log_ce) {
+			error_logged = true;
 			mce_log(&m);
+		}
 
 		/*
 		 * Clear state for this bank.
@@ -655,6 +654,8 @@ void machine_check_poll(enum mcp_flags flags, mce_banks_t *b)
 	 */
 
 	sync_core();
+
+	return error_logged;
 }
 EXPORT_SYMBOL_GPL(machine_check_poll);
 
@@ -1279,7 +1280,7 @@ void mce_log_therm_throt_event(__u64 status)
  * poller finds an MCE, poll 2x faster.  When the poller finds no more
  * errors, poll 2x slower (up to check_interval seconds).
  */
-static unsigned long check_interval = 5 * 60; /* 5 minutes */
+static unsigned long check_interval = INITIAL_CHECK_INTERVAL;
 
 static DEFINE_PER_CPU(unsigned long, mce_next_interval); /* in jiffies */
 static DEFINE_PER_CPU(struct timer_list, mce_timer);
@@ -1289,59 +1290,14 @@ static unsigned long mce_adjust_timer_default(unsigned long interval)
 	return interval;
 }
 
-static unsigned long (*mce_adjust_timer)(unsigned long interval) =
-	mce_adjust_timer_default;
+static unsigned long (*mce_adjust_timer)(unsigned long interval) = mce_adjust_timer_default;
 
-static int cmc_error_seen(void)
+static void __restart_timer(struct timer_list *t, unsigned long interval)
 {
-	unsigned long *v = &__get_cpu_var(mce_polled_error);
-
-	return test_and_clear_bit(0, v);
-}
-
-static void mce_timer_fn(unsigned long data)
-{
-	struct timer_list *t = &__get_cpu_var(mce_timer);
-	unsigned long iv;
-	int notify;
-
-	WARN_ON(smp_processor_id() != data);
-
-	if (mce_available(__this_cpu_ptr(&cpu_info))) {
-		machine_check_poll(MCP_TIMESTAMP,
-				&__get_cpu_var(mce_poll_banks));
-		mce_intel_cmci_poll();
-	}
-
-	/*
-	 * Alert userspace if needed.  If we logged an MCE, reduce the
-	 * polling interval, otherwise increase the polling interval.
-	 */
-	iv = __this_cpu_read(mce_next_interval);
-	notify = mce_notify_irq();
-	notify |= cmc_error_seen();
-	if (notify) {
-		iv = max(iv / 2, (unsigned long) HZ/100);
-	} else {
-		iv = min(iv * 2, round_jiffies_relative(check_interval * HZ));
-		iv = mce_adjust_timer(iv);
-	}
-	__this_cpu_write(mce_next_interval, iv);
-	/* Might have become 0 after CMCI storm subsided */
-	if (iv) {
-		t->expires = jiffies + iv;
-		add_timer_on(t, smp_processor_id());
-	}
-}
-
-/*
- * Ensure that the timer is firing in @interval from now.
- */
-void mce_timer_kick(unsigned long interval)
-{
-	struct timer_list *t = &__get_cpu_var(mce_timer);
 	unsigned long when = jiffies + interval;
-	unsigned long iv = __this_cpu_read(mce_next_interval);
+	unsigned long flags;
+
+	local_irq_save(flags);
 
 	if (timer_pending(t)) {
 		if (time_before(when, t->expires))
@@ -1350,6 +1306,54 @@ void mce_timer_kick(unsigned long interval)
 		t->expires = round_jiffies(when);
 		add_timer_on(t, smp_processor_id());
 	}
+
+	local_irq_restore(flags);
+}
+
+static void mce_timer_fn(unsigned long data)
+{
+	struct timer_list *t = &__get_cpu_var(mce_timer);
+	int cpu = smp_processor_id();
+	unsigned long iv;
+
+	WARN_ON(cpu != data);
+
+	iv = __this_cpu_read(mce_next_interval);
+
+	if (mce_available(__this_cpu_ptr(&cpu_info))) {
+		machine_check_poll(MCP_TIMESTAMP, this_cpu_ptr(&mce_poll_banks));
+
+		if (mce_intel_cmci_poll()) {
+			iv = mce_adjust_timer(iv);
+			goto done;
+		}
+
+	}
+
+	/*
+	 * Alert userspace if needed. If we logged an MCE, reduce the polling
+	 * interval, otherwise increase the polling interval.
+	 */
+	if (mce_notify_irq())
+		iv = max(iv / 2, (unsigned long) HZ/100);
+	else
+		iv = min(iv * 2, round_jiffies_relative(check_interval * HZ));
+
+done:
+	__this_cpu_write(mce_next_interval, iv);
+	__restart_timer(t, iv);
+}
+
+/*
+ * Ensure that the timer is firing in @interval from now.
+ */
+void mce_timer_kick(unsigned long interval)
+{
+	struct timer_list *t = &__get_cpu_var(mce_timer);
+	unsigned long iv = __this_cpu_read(mce_next_interval);
+
+	__restart_timer(t, interval);
+
 	if (interval < iv)
 		__this_cpu_write(mce_next_interval, interval);
 }
@@ -1610,7 +1614,7 @@ static void __mcheck_cpu_init_vendor(struct cpuinfo_x86 *c)
 	switch (c->x86_vendor) {
 	case X86_VENDOR_INTEL:
 		mce_intel_feature_init(c);
-		mce_adjust_timer = mce_intel_adjust_timer;
+		mce_adjust_timer = cmci_intel_adjust_timer;
 		break;
 	case X86_VENDOR_AMD:
 		mce_amd_feature_init(c);
