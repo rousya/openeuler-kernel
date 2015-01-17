@@ -2573,6 +2573,7 @@ extern int buffer_migrate_page(struct address_space *,
 extern int inode_change_ok(const struct inode *, struct iattr *);
 extern int inode_newsize_ok(const struct inode *, loff_t offset);
 extern void setattr_copy(struct inode *inode, const struct iattr *attr);
+extern int setattr_killpriv(struct dentry *dentry, struct iattr *attr);
 
 extern void file_update_time(struct file *file);
 

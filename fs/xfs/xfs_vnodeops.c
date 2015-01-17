@@ -2325,7 +2325,7 @@ xfs_change_file_space(
 		iattr.ia_valid = ATTR_SIZE;
 		iattr.ia_size = startoffset;
 
-		error = xfs_setattr_size(ip, &iattr, attr_flags);
+		error = xfs_setattr_size(NULL, ip, &iattr, attr_flags);
 
 		if (error)
 			return error;

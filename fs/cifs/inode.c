@@ -2147,6 +2147,12 @@ cifs_setattr_nounix(struct dentry *direntry, struct iattr *attrs)
 		return rc;
 	}
 
+	rc = setattr_killpriv(direntry, attrs);
+	if (rc) {
+		FreeXid(xid);
+		return rc;
+	}
+
 	full_path = build_path_from_dentry(direntry);
 	if (full_path == NULL) {
 		rc = -ENOMEM;
@@ -2167,7 +2173,10 @@ cifs_setattr_nounix(struct dentry *direntry, struct iattr *attrs)
 	 */
 	rc = filemap_write_and_wait(inode->i_mapping);
 	mapping_set_error(inode->i_mapping, rc);
-	rc = 0;
+
+	rc = setattr_killpriv(direntry, attrs);
+	if (rc)
+		goto cifs_setattr_exit;
 
 	if (attrs->ia_valid & ATTR_SIZE) {
 		rc = cifs_set_file_size(inode, attrs, xid, full_path);

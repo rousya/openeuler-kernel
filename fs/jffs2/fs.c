@@ -194,6 +194,10 @@ int jffs2_setattr(struct dentry *dentry, struct iattr *iattr)
 	if (rc)
 		return rc;
 
+	rc = setattr_killpriv(dentry, iattr);
+	if (rc)
+		return rc;
+
 	rc = jffs2_do_setattr(dentry->d_inode, iattr);
 	if (!rc && (iattr->ia_valid & ATTR_MODE))
 		rc = jffs2_acl_chmod(dentry->d_inode);

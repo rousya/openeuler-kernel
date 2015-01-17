@@ -481,6 +481,7 @@ xfs_setattr_mode(
 
 int
 xfs_setattr_nonsize(
+	struct dentry		*dentry,
 	struct xfs_inode	*ip,
 	struct iattr		*iattr,
 	int			flags)
@@ -504,6 +505,10 @@ xfs_setattr_nonsize(
 		return XFS_ERROR(EIO);
 
 	error = -inode_change_ok(inode, iattr);
+	if (error)
+		return XFS_ERROR(error);
+
+	error = setattr_killpriv(dentry, iattr);
 	if (error)
 		return XFS_ERROR(error);
 
@@ -702,6 +707,7 @@ out_dqrele:
  */
 int
 xfs_setattr_size(
+	struct dentry           *dentry,
 	struct xfs_inode	*ip,
 	struct iattr		*iattr,
 	int			flags)
@@ -751,8 +757,12 @@ xfs_setattr_size(
 		 */
 		xfs_iunlock(ip, lock_flags);
 		iattr->ia_valid &= ~ATTR_SIZE;
-		return xfs_setattr_nonsize(ip, iattr, 0);
+		return xfs_setattr_nonsize(dentry, ip, iattr, 0);
 	}
+
+	error = setattr_killpriv(dentry, iattr);
+	if (error)
+		goto out_unlock;
 
 	/*
 	 * Make sure that the dquots are attached to the inode.
@@ -915,8 +925,8 @@ xfs_vn_setattr(
 	struct iattr	*iattr)
 {
 	if (iattr->ia_valid & ATTR_SIZE)
-		return -xfs_setattr_size(XFS_I(dentry->d_inode), iattr, 0);
-	return -xfs_setattr_nonsize(XFS_I(dentry->d_inode), iattr, 0);
+		return -xfs_setattr_size(dentry, XFS_I(dentry->d_inode), iattr, 0);
+	return -xfs_setattr_nonsize(dentry, XFS_I(dentry->d_inode), iattr, 0);
 }
 
 #define XFS_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC|FIEMAP_FLAG_XATTR)

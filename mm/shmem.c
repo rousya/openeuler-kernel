@@ -566,6 +566,10 @@ static int shmem_setattr(struct dentry *dentry, struct iattr *attr)
 	if (error)
 		return error;
 
+	error = setattr_killpriv(dentry, attr);
+	if (error)
+		return error;
+
 	if (S_ISREG(inode->i_mode) && (attr->ia_valid & ATTR_SIZE)) {
 		loff_t oldsize = inode->i_size;
 		loff_t newsize = attr->ia_size;
