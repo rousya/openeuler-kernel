@@ -1799,6 +1799,10 @@ void __weak module_arch_cleanup(struct module *mod)
 {
 }
 
+void __weak module_arch_freeing_init(struct module *mod)
+{
+}
+
 /* Free a module, remove from lists, etc. */
 static void free_module(struct module *mod)
 {
@@ -1824,6 +1828,7 @@ static void free_module(struct module *mod)
 
 	/* This may be NULL, but that's OK */
 	unset_module_init_ro_nx(mod);
+	module_arch_freeing_init(mod);
 	module_free(mod, mod->module_init);
 	kfree(mod->args);
 	percpu_modfree(mod);
@@ -2846,6 +2851,7 @@ out:
 static void module_deallocate(struct module *mod, struct load_info *info)
 {
 	percpu_modfree(mod);
+	module_arch_freeing_init(mod);
 	module_free(mod, mod->module_init);
 	module_free(mod, mod->module_core);
 }
@@ -3096,6 +3102,7 @@ SYSCALL_DEFINE3(init_module, void __user *, umod,
 	mod->strtab = mod->core_strtab;
 #endif
 	unset_module_init_ro_nx(mod);
+	module_arch_freeing_init(mod);
 	module_free(mod, mod->module_init);
 	mod->module_init = NULL;
 	mod->init_size = 0;
