@@ -220,24 +220,19 @@ static void kvm_shared_msr_cpu_online(void)
 		shared_msr_update(i, shared_msrs_global.msrs[i]);
 }
 
-int kvm_set_shared_msr(unsigned slot, u64 value, u64 mask)
+void kvm_set_shared_msr(unsigned slot, u64 value, u64 mask)
 {
 	struct kvm_shared_msrs *smsr = &__get_cpu_var(shared_msrs);
-	int err;
 
 	if (((value ^ smsr->values[slot].curr) & mask) == 0)
-		return 0;
+		return;
 	smsr->values[slot].curr = value;
-	err = checking_wrmsrl(shared_msrs_global.msrs[slot], value);
-	if (err)
-		return 1;
-
+	wrmsrl(shared_msrs_global.msrs[slot], value);
 	if (!smsr->registered) {
 		smsr->urn.on_user_return = kvm_on_user_return;
 		user_return_notifier_register(&smsr->urn);
 		smsr->registered = true;
 	}
-	return 0;
 }
 EXPORT_SYMBOL_GPL(kvm_set_shared_msr);
 
