@@ -3864,6 +3864,20 @@ static inline void update_sg_lb_stats(struct sched_domain *sd,
 			update_group_power(sd, this_cpu);
 	}
 
+	/*
+	 * Initialize sgp->power such that even if we mess up the
+	 * domains and no possible iteration will get us here, we won't
+	 * die on a /0 trap.
+	 */
+	if (unlikely(!group->sgp->power)) {
+		struct cpumask *span;
+
+		WARN_ON_ONCE(!group->sgp->power);
+
+		span = sched_group_cpus(group);
+		group->sgp->power = SCHED_POWER_SCALE * cpumask_weight(span);
+	}
+
 	/* Adjust by relative CPU power of the group */
 	sgs->avg_load = (sgs->group_load*SCHED_POWER_SCALE) / group->sgp->power;
 
