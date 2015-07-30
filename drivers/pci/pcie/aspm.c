@@ -676,7 +676,8 @@ void pcie_aspm_exit_link_state(struct pci_dev *pdev)
 	 * All PCIe functions are in one slot, remove one function will remove
 	 * the whole slot, so just wait until we are the last function left.
 	 */
-	if (!list_is_last(&pdev->bus_list, &parent->subordinate->devices))
+	if (!(pdev == list_first_entry(&parent->subordinate->devices,
+					struct pci_dev, bus_list)))
 		goto out;
 
 	link = parent->link_state;
