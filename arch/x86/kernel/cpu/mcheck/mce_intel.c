@@ -105,6 +105,22 @@ void mce_intel_hcpu_update(unsigned long cpu)
 	per_cpu(cmci_storm_state, cpu) = CMCI_STORM_NONE;
 }
 
+static void cmci_storm_enable_banks(void)
+{
+	unsigned long flags, *owned;
+	int bank;
+	u64 val;
+
+	raw_spin_lock_irqsave(&cmci_discover_lock, flags);
+	owned = __get_cpu_var(mce_banks_owned);
+	for_each_set_bit(bank, owned, MAX_NR_BANKS) {
+		rdmsrl(MSR_IA32_MCx_CTL2(bank), val);
+		val |= MCI_CTL2_CMCI_EN;
+		wrmsrl(MSR_IA32_MCx_CTL2(bank), val);
+	}
+	raw_spin_unlock_irqrestore(&cmci_discover_lock, flags);
+}
+
 unsigned long cmci_intel_adjust_timer(unsigned long interval)
 {
 	if ((this_cpu_read(cmci_backoff_cnt) > 0) &&
@@ -134,7 +150,7 @@ unsigned long cmci_intel_adjust_timer(unsigned long interval)
 		 */
 		if (!atomic_read(&cmci_storm_on_cpus)) {
 			__this_cpu_write(cmci_storm_state, CMCI_STORM_NONE);
-			cmci_reenable();
+			cmci_storm_enable_banks();
 			cmci_recheck();
 		}
 		return CMCI_POLL_INTERVAL;
