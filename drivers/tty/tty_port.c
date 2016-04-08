@@ -139,7 +139,7 @@ void tty_port_hangup(struct tty_port *port)
 
 	spin_lock_irqsave(&port->lock, flags);
 	port->count = 0;
-	port->flags &= ~ASYNC_NORMAL_ACTIVE;
+	clear_bit(ASYNCB_NORMAL_ACTIVE, &port->flags);
 	if (port->tty) {
 		set_bit(TTY_IO_ERROR, &port->tty->flags);
 		tty_kref_put(port->tty);
@@ -241,14 +241,14 @@ int tty_port_block_til_ready(struct tty_port *port,
 	/* if non-blocking mode is set we can pass directly to open unless
 	   the port has just hung up or is in another error state */
 	if (tty->flags & (1 << TTY_IO_ERROR)) {
-		port->flags |= ASYNC_NORMAL_ACTIVE;
+		set_bit(ASYNCB_NORMAL_ACTIVE, &port->flags);
 		return 0;
 	}
 	if (filp->f_flags & O_NONBLOCK) {
 		/* Indicate we are open */
 		if (tty->termios->c_cflag & CBAUD)
 			tty_port_raise_dtr_rts(port);
-		port->flags |= ASYNC_NORMAL_ACTIVE;
+		set_bit(ASYNCB_NORMAL_ACTIVE, &port->flags);
 		return 0;
 	}
 
@@ -309,7 +309,7 @@ int tty_port_block_til_ready(struct tty_port *port,
 		port->count++;
 	port->blocked_open--;
 	if (retval == 0)
-		port->flags |= ASYNC_NORMAL_ACTIVE;
+		set_bit(ASYNCB_NORMAL_ACTIVE, &port->flags);
 	spin_unlock_irqrestore(&port->lock, flags);
 	return retval;
 }
@@ -395,7 +395,8 @@ void tty_port_close_end(struct tty_port *port, struct tty_struct *tty)
 		spin_lock_irqsave(&port->lock, flags);
 		wake_up_interruptible(&port->open_wait);
 	}
-	port->flags &= ~(ASYNC_NORMAL_ACTIVE | ASYNC_CLOSING);
+	clear_bit(ASYNCB_NORMAL_ACTIVE, &port->flags);
+	clear_bit(ASYNCB_CLOSING, &port->flags);
 	wake_up_interruptible(&port->close_wait);
 	spin_unlock_irqrestore(&port->lock, flags);
 }
