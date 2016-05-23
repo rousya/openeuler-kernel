@@ -54,14 +54,50 @@ static unsigned long release_freepages(struct list_head *freelist)
 	return count;
 }
 
+/*
+ * Compaction requires the taking of some coarse locks that are potentially
+ * very heavily contended. Check if the process needs to be scheduled or
+ * if the lock is contended. For async compaction, back out in the event
+ * if contention is severe. For sync compaction, schedule.
+ *
+ * Returns true if the lock is held.
+ * Returns false if the lock is released and compaction should abort
+ */
+static bool compact_checklock_irqsave(spinlock_t *lock, unsigned long *flags,
+				bool locked, struct compact_control *cc)
+{
+	if (need_resched() || spin_is_contended(lock)) {
+		if (locked) {
+			spin_unlock_irqrestore(lock, *flags);
+			locked = false;
+		}
+
+		/* async aborts if taking too long */
+		if (!cc->sync) {
+			return false;
+		}
+
+		cond_resched();
+		if (fatal_signal_pending(current))
+			return false;
+	}
+
+	if (!locked)
+		spin_lock_irqsave(lock, *flags);
+	return true;
+}
+
 /* Isolate free pages onto a private freelist. Must hold zone->lock */
-static unsigned long isolate_freepages_block(struct zone *zone,
+static unsigned long isolate_freepages_block(struct compact_control *cc,
+				struct zone *zone,
 				unsigned long blockpfn,
 				struct list_head *freelist)
 {
 	unsigned long zone_end_pfn, end_pfn;
 	int nr_scanned = 0, total_isolated = 0;
 	struct page *cursor;
+	unsigned long flags;
+	bool locked = false;
 
 	/* Get the last PFN we should scan for free pages at */
 	zone_end_pfn = zone->zone_start_pfn + zone->spanned_pages;
@@ -86,6 +122,23 @@ static unsigned long isolate_freepages_block(struct zone *zone,
 		if (!PageBuddy(page))
 			continue;
 
+		/*
+		 * The zone lock must be held to isolate freepages.
+		 * Unfortunately this is a very coarse lock and can be
+		 * heavily contended if there are parallel allocations
+		 * or parallel compactions. For async compaction do not
+		 * spin on the lock and we acquire the lock as late as
+		 * possible.
+		 */
+		locked = compact_checklock_irqsave(&cc->zone->lock, &flags,
+							locked, cc);
+		if (!locked)
+			break;
+
+		/* Recheck this is a buddy page under lock */
+		if (!PageBuddy(page))
+			continue;
+
 		/* Found a free page, break it into order-0 pages */
 		isolated = split_free_page(page);
 		total_isolated += isolated;
@@ -102,6 +155,10 @@ static unsigned long isolate_freepages_block(struct zone *zone,
 	}
 
 	trace_mm_compaction_isolate_freepages(nr_scanned, total_isolated);
+
+	if (locked)
+		spin_unlock_irqrestore(&cc->zone->lock, flags);
+
 	return total_isolated;
 }
 
@@ -182,19 +239,12 @@ static void isolate_freepages(struct zone *zone,
 		if (!suitable_migration_target(page))
 			continue;
 
-		/*
-		 * Found a block suitable for isolating free pages from. Now
-		 * we disabled interrupts, double check things are ok and
-		 * isolate the pages. This is to minimise the time IRQs
-		 * are disabled
-		 */
+		/* Found a block suitable for isolating free pages from */
 		isolated = 0;
-		spin_lock_irqsave(&zone->lock, flags);
 		if (suitable_migration_target(page)) {
-			isolated = isolate_freepages_block(zone, pfn, freelist);
+			isolated = isolate_freepages_block(cc, zone, pfn, freelist);
 			nr_freepages += isolated;
 		}
-		spin_unlock_irqrestore(&zone->lock, flags);
 
 		/*
 		 * Record the highest PFN we isolated pages from. When next
