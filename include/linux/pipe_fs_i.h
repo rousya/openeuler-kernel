@@ -56,7 +56,9 @@ struct pipe_inode_info {
 	struct fasync_struct *fasync_writers;
 	struct inode *inode;
 	struct pipe_buffer *bufs;
+#ifndef __GENKSYMS__
 	struct user_struct *user;
+#endif
 };
 
 /*
