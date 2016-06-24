@@ -133,15 +133,6 @@ void ip6_frag_init(struct inet_frag_queue *q, void *a)
 }
 EXPORT_SYMBOL(ip6_frag_init);
 
-static void ip6_evictor(struct net *net, struct inet6_dev *idev)
-{
-	int evicted;
-
-	evicted = inet_frag_evictor(&net->ipv6.frags, &ip6_frags);
-	if (evicted)
-		IP6_ADD_STATS_BH(net, idev, IPSTATS_MIB_REASMFAILS, evicted);
-}
-
 void ip6_expire_frag_queue(struct net *net, struct frag_queue *fq,
 			   struct inet_frags *frags)
 {
@@ -516,6 +507,7 @@ static int ipv6_frag_rcv(struct sk_buff *skb)
 	struct frag_queue *fq;
 	const struct ipv6hdr *hdr = ipv6_hdr(skb);
 	struct net *net = dev_net(skb_dst(skb)->dev);
+	int evicted;
 
 	if (IP6CB(skb)->flags & IP6SKB_FRAGMENTED)
 		goto fail_hdr;
@@ -544,8 +536,10 @@ static int ipv6_frag_rcv(struct sk_buff *skb)
 		return 1;
 	}
 
-	if (atomic_read(&net->ipv6.frags.mem) > net->ipv6.frags.high_thresh)
-		ip6_evictor(net, ip6_dst_idev(skb_dst(skb)));
+	evicted = inet_frag_evictor(&net->ipv6.frags, &ip6_frags, false);
+	if (evicted)
+		IP6_ADD_STATS_BH(net, ip6_dst_idev(skb_dst(skb)),
+				 IPSTATS_MIB_REASMFAILS, evicted);
 
 	fq = fq_find(net, fhdr->identification, &hdr->saddr, &hdr->daddr);
 	if (fq != NULL) {
