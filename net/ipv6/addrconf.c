@@ -2561,7 +2561,7 @@ static inline int
 ipv6_inherit_linklocal(struct inet6_dev *idev, struct net_device *link_dev)
 {
 	struct in6_addr lladdr;
-	bool send_rs;
+	bool send_rs, send_mld;
 
 	if (!ipv6_get_lladdr(link_dev, &lladdr, IFA_F_TENTATIVE)) {
 		addrconf_add_linklocal(idev, &lladdr);
@@ -3063,7 +3063,7 @@ out:
 static void addrconf_dad_completed(struct inet6_ifaddr *ifp)
 {
 	struct net_device *dev = ifp->idev->dev;
-	bool send_rs;
+	bool send_rs, send_mld;
 
 	/*
 	 *	Configure the address for reception. Now it is valid.
@@ -3077,14 +3077,21 @@ static void addrconf_dad_completed(struct inet6_ifaddr *ifp)
 
 	read_lock_bh(&ifp->idev->lock);
 	spin_lock(&ifp->lock);
-	send_rs = ((ifp->idev->cnf.accept_ra == 1 && !ifp->idev->cnf.forwarding) ||
+	send_mld = ipv6_addr_type(&ifp->addr) & IPV6_ADDR_LINKLOCAL &&
+		   ifp->idev->valid_ll_addr_cnt == 1;
+	send_rs = send_mld &&
+		  ((ifp->idev->cnf.accept_ra == 1 && !ifp->idev->cnf.forwarding) ||
 		  ifp->idev->cnf.accept_ra == 2) &&
 		  ifp->idev->cnf.rtr_solicits > 0 &&
-		  (dev->flags&IFF_LOOPBACK) == 0 &&
-		  ipv6_addr_type(&ifp->addr) & IPV6_ADDR_LINKLOCAL &&
-		  ifp->idev->valid_ll_addr_cnt == 1;
+		  (dev->flags&IFF_LOOPBACK) == 0;
 	spin_unlock(&ifp->lock);
 	read_unlock_bh(&ifp->idev->lock);
+
+	/* While dad is in progress mld report's source address is in6_addrany.
+	 * Resend with proper ll now.
+	 */
+	if (send_mld)
+		ipv6_mc_dad_complete(ifp->idev);
 
 	if (send_rs) {
 		/*

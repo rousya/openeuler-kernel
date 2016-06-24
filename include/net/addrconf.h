@@ -181,6 +181,7 @@ extern int ipv6_chk_mcast_addr(struct net_device *dev,
 extern void addrconf_prefix_rcv(struct net_device *dev,
 				u8 *opt, int len, bool sllao);
 
+extern void ipv6_mc_dad_complete(struct inet6_dev *idev);
 /*
  *	anycast prototypes (anycast.c)
  */
