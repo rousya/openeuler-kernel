@@ -2561,6 +2561,7 @@ static inline int
 ipv6_inherit_linklocal(struct inet6_dev *idev, struct net_device *link_dev)
 {
 	struct in6_addr lladdr;
+	bool send_rs;
 
 	if (!ipv6_get_lladdr(link_dev, &lladdr, IFA_F_TENTATIVE)) {
 		addrconf_add_linklocal(idev, &lladdr);
@@ -3062,6 +3063,7 @@ out:
 static void addrconf_dad_completed(struct inet6_ifaddr *ifp)
 {
 	struct net_device *dev = ifp->idev->dev;
+	bool send_rs;
 
 	/*
 	 *	Configure the address for reception. Now it is valid.
@@ -3073,11 +3075,18 @@ static void addrconf_dad_completed(struct inet6_ifaddr *ifp)
 	   router advertisements, start sending router solicitations.
 	 */
 
-	if (((ifp->idev->cnf.accept_ra == 1 && !ifp->idev->cnf.forwarding) ||
-	     ifp->idev->cnf.accept_ra == 2) &&
-	    ifp->idev->cnf.rtr_solicits > 0 &&
-	    (dev->flags&IFF_LOOPBACK) == 0 &&
-	    (ipv6_addr_type(&ifp->addr) & IPV6_ADDR_LINKLOCAL)) {
+	read_lock_bh(&ifp->idev->lock);
+	spin_lock(&ifp->lock);
+	send_rs = ((ifp->idev->cnf.accept_ra == 1 && !ifp->idev->cnf.forwarding) ||
+		  ifp->idev->cnf.accept_ra == 2) &&
+		  ifp->idev->cnf.rtr_solicits > 0 &&
+		  (dev->flags&IFF_LOOPBACK) == 0 &&
+		  ipv6_addr_type(&ifp->addr) & IPV6_ADDR_LINKLOCAL &&
+		  ifp->idev->valid_ll_addr_cnt == 1;
+	spin_unlock(&ifp->lock);
+	read_unlock_bh(&ifp->idev->lock);
+
+	if (send_rs) {
 		/*
 		 *	If a host as already performed a random delay
 		 *	[...] as part of DAD [...] there is no need
@@ -4261,12 +4270,27 @@ errout:
 		rtnl_set_sk_err(net, RTNLGRP_IPV6_PREFIX, err);
 }
 
+static void update_valid_ll_addr_cnt(struct inet6_ifaddr *ifp, int count)
+{
+	write_lock_bh(&ifp->idev->lock);
+	spin_lock(&ifp->lock);
+	if (((ifp->flags & (IFA_F_PERMANENT|IFA_F_TENTATIVE|IFA_F_OPTIMISTIC|
+			    IFA_F_DADFAILED)) == IFA_F_PERMANENT) &&
+	    (ipv6_addr_type(&ifp->addr) & IPV6_ADDR_LINKLOCAL))
+		ifp->idev->valid_ll_addr_cnt += count;
+	WARN_ON(ifp->idev->valid_ll_addr_cnt < 0);
+	spin_unlock(&ifp->lock);
+	write_unlock_bh(&ifp->idev->lock);
+}
+
 static void __ipv6_ifa_notify(int event, struct inet6_ifaddr *ifp)
 {
 	inet6_ifa_notify(event ? : RTM_NEWADDR, ifp);
 
 	switch (event) {
 	case RTM_NEWADDR:
+		update_valid_ll_addr_cnt(ifp, 1);
+
 		/*
 		 * If the address was optimistic
 		 * we inserted the route at the start of
@@ -4279,6 +4303,8 @@ static void __ipv6_ifa_notify(int event, struct inet6_ifaddr *ifp)
 			addrconf_join_anycast(ifp);
 		break;
 	case RTM_DELADDR:
+		update_valid_ll_addr_cnt(ifp, -1);
+
 		if (ifp->idev->cnf.forwarding)
 			addrconf_leave_anycast(ifp);
 		addrconf_leave_solict(ifp->idev, &ifp->addr);
