@@ -940,7 +940,7 @@ void ip6_route_input(struct sk_buff *skb)
 		.flowi6_iif = skb->dev->ifindex,
 		.daddr = iph->daddr,
 		.saddr = iph->saddr,
-		.flowlabel = (* (__be32 *) iph) & IPV6_FLOWINFO_MASK,
+		.flowlabel = ip6_flowinfo(iph),
 		.flowi6_mark = skb->mark,
 		.flowi6_proto = iph->nexthdr,
 	};
