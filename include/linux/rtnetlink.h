@@ -283,6 +283,7 @@ enum rtattr_type_t {
 	RTA_MP_ALGO, /* no longer used */
 	RTA_TABLE,
 	RTA_MARK,
+	RTA_PREF,
 	__RTA_MAX
 };
 
