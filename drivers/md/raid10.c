@@ -2602,8 +2602,8 @@ static void raid10d(struct mddev *mddev)
 		}
 		spin_unlock_irqrestore(&conf->device_lock, flags);
 		while (!list_empty(&tmp)) {
-			r10_bio = list_first_entry(&conf->bio_end_io_list,
-						  struct r10bio, retry_list);
+			r10_bio = list_first_entry(&tmp, struct r10bio,
+						   retry_list);
 			list_del(&r10_bio->retry_list);
 			if (mddev->degraded)
 				set_bit(R10BIO_Degraded, &r10_bio->state);
