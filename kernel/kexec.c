@@ -111,6 +111,7 @@ int kexec_should_crash(struct task_struct *p)
  * allocating pages whose destination address we do not care about.
  */
 #define KIMAGE_NO_DEST (-1UL)
+#define PAGE_COUNT(x) (((x) + PAGE_SIZE - 1) >> PAGE_SHIFT)
 
 static int kimage_is_destination_range(struct kimage *image,
 				       unsigned long start, unsigned long end);
@@ -126,6 +127,7 @@ static int do_kimage_alloc(struct kimage **rimage, unsigned long entry,
 	struct kimage *image;
 	unsigned long i;
 	int result;
+	unsigned long total_pages = 0;
 
 	/* Allocate a controlling structure */
 	result = -ENOMEM;
@@ -157,6 +159,22 @@ static int do_kimage_alloc(struct kimage **rimage, unsigned long entry,
 		result = -EFAULT;
 		goto out;
 	}
+
+	/*
+	 * Verify that no segment is larger than half of memory.
+	 * If a segment from userspace is too large, a large amount
+	 * of time will be wasted allocating pages, which can cause
+	 * * a soft lockup.
+	 */
+	for (i = 0; i < nr_segments; i++) {
+		if (PAGE_COUNT(image->segment[i].memsz) > totalram_pages / 2)
+			return result;
+
+		total_pages += PAGE_COUNT(image->segment[i].memsz);
+	}
+
+	if (total_pages > totalram_pages / 2)
+		return result;
 
 	/*
 	 * Verify we have good destination addresses.  The caller is
