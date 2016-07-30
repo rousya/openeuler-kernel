@@ -228,8 +228,10 @@ struct scsi_dh_data {
 enum scsi_target_state {
 	STARGET_CREATED = 1,
 	STARGET_RUNNING,
-	STARGET_REMOVE,
 	STARGET_DEL,
+#ifndef __GENKSYMS__
+	STARGET_REMOVE,
+#endif
 };
 
 /*
