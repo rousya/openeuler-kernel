@@ -1319,8 +1319,9 @@ static void nvme_timeout_ios(struct nvme_queue *nvmeq)
 	for_each_set_bit(cmdid, nvmeq->cmdid_data, depth) {
 		void *ctx;
 		nvme_completion_fn fn;
-		static struct nvme_completion cqe = { .status = cpu_to_le16(NVME_SC_ABORT_REQ) << 1, };
-
+		static struct nvme_completion cqe = {
+			.status = cpu_to_le16(NVME_SC_ABORT_REQ << 1),
+		};
 		if (!time_after(now, info[cmdid].timeout))
 			continue;
 		dev_warn(nvmeq->q_dmadev, "Timing out I/O %d\n", cmdid);
