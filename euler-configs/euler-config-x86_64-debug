@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86_64 3.4.105-rc1 Kernel Configuration
+# Linux/x86_64 3.4.24 Kernel Configuration
 #
 CONFIG_64BIT=y
 # CONFIG_X86_32 is not set
@@ -1608,7 +1608,7 @@ CONFIG_BLK_DEV_CRYPTOLOOP=m
 CONFIG_BLK_DEV_DRBD=m
 # CONFIG_DRBD_FAULT_INJECTION is not set
 CONFIG_BLK_DEV_NBD=m
-# CONFIG_BLK_DEV_NVME is not set
+CONFIG_BLK_DEV_NVME=m
 CONFIG_BLK_DEV_OSD=m
 CONFIG_BLK_DEV_SX8=m
 # CONFIG_BLK_DEV_UB is not set
