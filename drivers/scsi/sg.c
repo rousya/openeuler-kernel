@@ -677,6 +677,10 @@ sg_new_write(Sg_fd *sfp, struct file *file, const char __user *buf,
 	}
 	if (hp->flags & SG_FLAG_MMAP_IO) {
 		if (hp->dxfer_len > sfp->reserve.bufflen) {
+			printk(KERN_ERR "sg_new_write: input flag=0x%x dx_len=%u " \
+					"reserve bufflen=%u\n",
+					hp->flags, hp->dxfer_len,
+					sfp->reserve.bufflen);
 			sg_remove_request(sfp, srp);
 			return -ENOMEM;	/* MMAP_IO size must fit in reserve buffer */
 		}
@@ -1835,8 +1839,14 @@ retry:
 			 "rem_sz=%d\n", k, rem_sz));
 
 	schp->bufflen = blk_size;
-	if (rem_sz > 0)	/* must have failed */
+	if (rem_sz > 0)	{ /* must have failed */
+		printk(KERN_ERR "sg_build_indirect: buff_size=%d " \
+				"blk_size=%d mx_sc_elems=%d " \
+				"order=%d rem_sz=%d\n",
+				buff_size, blk_size, mx_sc_elems,
+				order, rem_sz);
 		return -ENOMEM;
+	}
 	return 0;
 out:
 	for (i = 0; i < k; i++)
