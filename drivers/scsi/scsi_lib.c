@@ -2467,7 +2467,8 @@ scsi_internal_device_unblock(struct scsi_device *sdev)
 	else if (sdev->sdev_state == SDEV_CREATED_BLOCK)
 		sdev->sdev_state = SDEV_CREATED;
 	else if (sdev->sdev_state != SDEV_CANCEL &&
-		 sdev->sdev_state != SDEV_OFFLINE)
+		 sdev->sdev_state != SDEV_OFFLINE &&
+		 sdev->sdev_state != SDEV_RUNNING)
 		return -EINVAL;
 
 	spin_lock_irqsave(q->queue_lock, flags);
