@@ -518,15 +518,9 @@ static struct page *dequeue_huge_page_node(struct hstate *h, int nid)
 {
 	struct page *page;
 
-	list_for_each_entry(page, &h->hugepage_freelists[nid], lru)
-		if (!is_migrate_isolate_page(page))
-			break;
-	/*
-	 * if 'non-isolated free hugepage' not found on the list,
-	 * the allocation fails.
-	 */
-	if (&h->hugepage_freelists[nid] == &page->lru)
+	if (list_empty(&h->hugepage_freelists[nid]))
 		return NULL;
+	page = list_entry(h->hugepage_freelists[nid].next, struct page, lru);
 	list_del(&page->lru);
 	set_page_refcounted(page);
 	h->free_huge_pages--;
