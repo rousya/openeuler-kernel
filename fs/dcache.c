@@ -472,7 +472,7 @@ static inline struct dentry *dentry_kill(struct dentry *dentry, int ref)
 	if (inode && !spin_trylock(&inode->i_lock)) {
 relock:
 		spin_unlock(&dentry->d_lock);
-		cpu_relax();
+		cond_resched();
 		return dentry; /* try again with same dentry */
 	}
 	if (IS_ROOT(dentry))
