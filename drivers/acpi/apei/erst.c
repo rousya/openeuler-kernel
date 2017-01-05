@@ -1195,6 +1195,9 @@ static int __init erst_init(void)
 	pr_info(ERST_PFX
 	"Error Record Serialization Table (ERST) support is initialized.\n");
 
+	/* Cleanup ERST Resources */
+	apei_resources_fini(&erst_resources);
+
 	return 0;
 
 err_release_erange:
