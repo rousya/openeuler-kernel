@@ -369,12 +369,12 @@ void __init_or_module alternatives_smp_module_add(struct module *mod,
 		if (boot_cpu_has(X86_FEATURE_UP))
 			alternatives_smp_unlock(locks, locks_end,
 						text, text_end);
-		goto text_unlock;
+		return;
 	}
 
 	smp = kzalloc(sizeof(*smp), GFP_KERNEL);
 	if (NULL == smp)
-		goto text_unlock; /* we'll run the (safe but slow) SMP code then ... */
+		return; /* we'll run the (safe but slow) SMP code then ... */
 
 	smp->mod	= mod;
 	smp->name	= name;
@@ -392,7 +392,7 @@ void __init_or_module alternatives_smp_module_add(struct module *mod,
 		alternatives_smp_unlock(smp->locks, smp->locks_end,
 					smp->text, smp->text_end);
 	mutex_unlock(&smp_alt);
-text_unlock:
+
 	mutex_unlock(&text_mutex);
 }
 
