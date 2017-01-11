@@ -324,6 +324,7 @@ static void alternatives_smp_unlock(const s32 *start, const s32 *end,
 	if (noreplace_smp)
 		return;
 
+	mutex_lock(&text_mutex);
 	for (poff = start; poff < end; poff++) {
 		u8 *ptr = (u8 *)poff + *poff;
 
@@ -333,6 +334,7 @@ static void alternatives_smp_unlock(const s32 *start, const s32 *end,
 		if (*ptr == 0xf0)
 			text_poke(ptr, ((unsigned char []){0x3E}), 1);
 	};
+	mutex_unlock(&text_mutex);
 }
 
 struct smp_alt_module {
@@ -364,17 +366,16 @@ void __init_or_module alternatives_smp_module_add(struct module *mod,
 	if (noreplace_smp)
 		return;
 
-	mutex_lock(&text_mutex);
 	if (smp_alt_once) {
 		if (boot_cpu_has(X86_FEATURE_UP))
 			alternatives_smp_unlock(locks, locks_end,
 						text, text_end);
-		goto text_unlock;
+		return;
 	}
 
 	smp = kzalloc(sizeof(*smp), GFP_KERNEL);
 	if (NULL == smp)
-		goto text_unlock; /* we'll run the (safe but slow) SMP code then ... */
+		return; /* we'll run the (safe but slow) SMP code then ... */
 
 	smp->mod	= mod;
 	smp->name	= name;
@@ -392,8 +393,6 @@ void __init_or_module alternatives_smp_module_add(struct module *mod,
 		alternatives_smp_unlock(smp->locks, smp->locks_end,
 					smp->text, smp->text_end);
 	mutex_unlock(&smp_alt);
-text_unlock:
-	mutex_unlock(&text_mutex);
 }
 
 void __init_or_module alternatives_smp_module_del(struct module *mod)
@@ -436,7 +435,6 @@ void alternatives_smp_switch(int smp)
 		return;
 	BUG_ON(!smp && (num_online_cpus() > 1));
 
-	mutex_lock(&text_mutex);
 	mutex_lock(&smp_alt);
 
 	/*
@@ -462,7 +460,6 @@ void alternatives_smp_switch(int smp)
 	}
 	smp_mode = smp;
 	mutex_unlock(&smp_alt);
-	mutex_unlock(&text_mutex);
 }
 
 /* Return 1 if the address range is reserved for smp-alternatives */
@@ -472,8 +469,6 @@ int alternatives_text_reserved(void *start, void *end)
 	const s32 *poff;
 	u8 *text_start = start;
 	u8 *text_end = end;
-
-	mutex_lock(&smp_alt);
 
 	list_for_each_entry(mod, &smp_alt_modules, next) {
 		if (mod->text > text_end || mod->text_end < text_start)
@@ -485,8 +480,6 @@ int alternatives_text_reserved(void *start, void *end)
 				return 1;
 		}
 	}
-
-	mutex_unlock(&smp_alt);
 
 	return 0;
 }
@@ -557,10 +550,8 @@ void __init alternative_instructions(void)
 			set_cpu_cap(&boot_cpu_data, X86_FEATURE_UP);
 			set_cpu_cap(&cpu_data(0), X86_FEATURE_UP);
 
-			mutex_lock(&text_mutex);
 			alternatives_smp_unlock(__smp_locks, __smp_locks_end,
 						_text, _etext);
-			mutex_unlock(&text_mutex);
 		}
 	} else {
 		alternatives_smp_module_add(NULL, "core kernel",
