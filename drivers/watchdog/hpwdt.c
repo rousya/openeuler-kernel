@@ -482,7 +482,7 @@ static int hpwdt_pretimeout(unsigned int ulReason, struct pt_regs *regs)
 	static int die_nmi_called;
 
 	if (!hpwdt_nmi_decoding)
-		goto out;
+		return NMI_DONE;
 
 	spin_lock_irqsave(&rom_lock, rom_pl);
 	if (!die_nmi_called && !is_icru)
@@ -495,15 +495,14 @@ static int hpwdt_pretimeout(unsigned int ulReason, struct pt_regs *regs)
 
 	if (!is_icru) {
 		if (cmn_regs.u1.ral == 0) {
-			panic("An NMI occurred, "
-				"but unable to determine source.\n");
+			nmi_panic(regs, "An NMI occurred, but unable to determine source.\n");
+			return NMI_HANDLED;
 		}
 	}
-	panic("An NMI occurred, please see the Integrated "
+	nmi_panic(regs, "An NMI occurred, please see the Integrated "
 		"Management Log for details.\n");
 
-out:
-	return NMI_DONE;
+	return NMI_HANDLED;
 }
 #endif /* CONFIG_HPWDT_NMI_DECODING */
 

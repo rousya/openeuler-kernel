@@ -236,7 +236,7 @@ static void watchdog_overflow_callback(struct perf_event *event,
 			return;
 
 		if (hardlockup_panic)
-			panic("Watchdog detected hard LOCKUP on cpu %d", this_cpu);
+			nmi_panic(regs, "Watchdog detected hard LOCKUP");
 		else
 			WARN(1, "Watchdog detected hard LOCKUP on cpu %d", this_cpu);
 
