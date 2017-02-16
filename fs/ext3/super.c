@@ -513,6 +513,7 @@ static void ext3_destroy_inode(struct inode *inode)
 				EXT3_I(inode), sizeof(struct ext3_inode_info),
 				false);
 		dump_stack();
+		ext3_orphan_del(NULL, inode);
 	}
 	call_rcu(&inode->i_rcu, ext3_i_callback);
 }

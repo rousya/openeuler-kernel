@@ -985,6 +985,7 @@ static void ext4_destroy_inode(struct inode *inode)
 				EXT4_I(inode), sizeof(struct ext4_inode_info),
 				true);
 		dump_stack();
+		ext4_orphan_del(NULL, inode);
 	}
 	call_rcu(&inode->i_rcu, ext4_i_callback);
 }
