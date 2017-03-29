@@ -914,6 +914,7 @@ static int selinux_parse_opts_str(char *options,
 	opts->mnt_opts_flags = kcalloc(NUM_SEL_MNT_OPTS, sizeof(int), GFP_ATOMIC);
 	if (!opts->mnt_opts_flags) {
 		kfree(opts->mnt_opts);
+		opts->mnt_opts = NULL;
 		goto out_err;
 	}
 
