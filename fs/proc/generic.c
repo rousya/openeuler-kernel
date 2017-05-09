@@ -405,8 +405,24 @@ static int proc_delete_dentry(const struct dentry * dentry)
 	return 1;
 }
 
+static int proc_dentry_revalidate(struct dentry *dentry, struct nameidata *nd)
+{
+	struct proc_dir_entry *de;
+
+	if (nd->flags & LOOKUP_RCU)
+		return -ECHILD;
+
+	de = PDE(dentry->d_inode);
+	if (1 < atomic_read(&de->count))
+		return 1;
+
+	d_drop(dentry);
+	return 0;
+}
+
 static const struct dentry_operations proc_dentry_operations =
 {
+	.d_revalidate = proc_dentry_revalidate,
 	.d_delete	= proc_delete_dentry,
 };
 
