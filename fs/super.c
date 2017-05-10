@@ -84,6 +84,11 @@ static int prune_super(struct shrinker *shrink, struct shrink_control *sc)
 		if (fs_objects)
 			fs_objects = (sc->nr_to_scan * fs_objects) /
 							total_objects;
+
+		if (dentries <= 0 || dentries > 1024)
+			dentries = 1024;
+		if (inodes <= 0 || inodes > 1024)
+			inodes = 1024;
 		/*
 		 * prune the dcache first as the icache is pinned by it, then
 		 * prune the icache, followed by the filesystem specific caches
