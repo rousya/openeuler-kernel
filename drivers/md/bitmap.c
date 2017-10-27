@@ -534,7 +534,7 @@ static int bitmap_new_disk_sb(struct bitmap *bitmap)
 	memcpy(sb->uuid, bitmap->mddev->uuid, 16);
 
 	bitmap->flags |= BITMAP_STALE;
-	sb->state |= cpu_to_le32(BITMAP_STALE);
+	sb->state = cpu_to_le32(BITMAP_STALE);
 	bitmap->events_cleared = bitmap->mddev->events;
 	sb->events_cleared = cpu_to_le64(bitmap->mddev->events);
 
@@ -625,7 +625,7 @@ static int bitmap_read_sb(struct bitmap *bitmap)
 	bitmap->mddev->bitmap_info.chunksize = chunksize;
 	bitmap->mddev->bitmap_info.daemon_sleep = daemon_sleep;
 	bitmap->mddev->bitmap_info.max_write_behind = write_behind;
-	bitmap->flags |= le32_to_cpu(sb->state);
+	bitmap->flags |= (le32_to_cpu(sb->state) & ~BITMAP_WRITE_ERROR);
 	if (le32_to_cpu(sb->version) == BITMAP_MAJOR_HOSTENDIAN)
 		bitmap->flags |= BITMAP_HOSTENDIAN;
 	bitmap->events_cleared = le64_to_cpu(sb->events_cleared);
@@ -792,8 +792,6 @@ static void bitmap_file_kick(struct bitmap *bitmap)
 			       bmname(bitmap));
 	}
 
-	bitmap_file_put(bitmap);
-
 	return;
 }
 
@@ -873,7 +871,7 @@ void bitmap_unplug(struct bitmap *bitmap)
 	 * flushed out to disk */
 	for (i = 0; i < bitmap->file_pages; i++) {
 		spin_lock_irqsave(&bitmap->lock, flags);
-		if (!bitmap->filemap) {
+		if ((bitmap->flags & BITMAP_STALE) || !bitmap->filemap) {
 			spin_unlock_irqrestore(&bitmap->lock, flags);
 			return;
 		}
@@ -1126,7 +1124,7 @@ void bitmap_daemon_work(struct mddev *mddev)
 	spin_lock_irqsave(&bitmap->lock, flags);
 	for (j = 0; j < bitmap->chunks; j++) {
 		bitmap_counter_t *bmc;
-		if (!bitmap->filemap)
+		if ((bitmap->flags & BITMAP_STALE) || !bitmap->filemap)
 			/* error or shutdown */
 			break;
 
