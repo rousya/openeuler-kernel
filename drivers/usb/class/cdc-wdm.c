@@ -843,7 +843,7 @@ static int wdm_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	if (!buffer)
 		goto err;
-	while (buflen > 2) {
+	while ((buflen > 2) && (buffer[0] > 2) && (buffer[0] <= buflen)) {
 		if (buffer[1] != USB_DT_CS_INTERFACE) {
 			dev_err(&intf->dev, "skipping garbage\n");
 			goto next_desc;

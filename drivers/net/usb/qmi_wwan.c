@@ -86,7 +86,7 @@ static int qmi_wwan_bind(struct usbnet *dev, struct usb_interface *intf)
 			dev_name(&control->dev));
 	}
 
-	while (len > 3) {
+	while ((len > 3) && (buf[0] > 2) && (buf[0] <= len)) {
 		struct usb_descriptor_header *h = (void *)buf;
 
 		/* ignore any misplaced descriptors */

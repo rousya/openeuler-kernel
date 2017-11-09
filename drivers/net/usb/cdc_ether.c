@@ -128,7 +128,7 @@ int usbnet_generic_cdc_bind(struct usbnet *dev, struct usb_interface *intf)
 
 	memset(info, 0, sizeof *info);
 	info->control = intf;
-	while (len > 3) {
+	while ((len > 3) && (buf[0] > 2) && (buf[0] <= len) ) {
 		if (buf [1] != USB_DT_CS_INTERFACE)
 			goto next_desc;
 
