@@ -567,6 +567,7 @@ static int genl_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 		{
 			struct netlink_dump_control c = {
 				.dump = ops->dumpit,
+				.start = ops->start,
 				.done = ops->done,
 			};
 			err = netlink_dump_start(net->genl_sock, skb, nlh, &c);
